@@ -19,8 +19,8 @@ const rl = readline.createInterface({
 
 // Helper function to get user input
 function askQuestion(query: string): Promise<string> {
-  return new Promise(resolve => {
-    rl.question(query, answer => {
+  return new Promise((resolve) => {
+    rl.question(query, (answer) => {
       resolve(answer);
     });
   });
@@ -28,21 +28,42 @@ function askQuestion(query: string): Promise<string> {
 
 // run the agent
 async function run() {
-  // Get initial query
-  const initialQuery = await askQuestion('What would you like to research? ');
+  // Ask whether to use prompt.txt or enter manually
+  const useFile = (await askQuestion(
+    'Do you want to use prompt.txt as the initial query? (y/n): '
+  )).toLowerCase();
 
-  // Get breath and depth parameters
+  let initialQuery;
+
+  if (useFile === 'y') {
+    try {
+      initialQuery = await fs.readFile('prompt.txt', 'utf-8');
+      log('Using prompt from prompt.txt:\n', initialQuery);
+    } catch (err) {
+      console.error('Error reading prompt.txt:', err);
+      rl.close();
+      return;
+    }
+  } else if (useFile === 'n') {
+    initialQuery = await askQuestion('What would you like to research? ');
+  } else {
+    console.error('Invalid input. Please restart the program and enter y or n.');
+    rl.close();
+    return;
+  }
+
+  // Get breadth and depth parameters
   const breadth =
     parseInt(
       await askQuestion(
-        'Enter research breadth (recommended 2-10, default 4): ',
+        'Enter research breadth (recommended 2-10, default 4): '
       ),
-      10,
+      10
     ) || 4;
   const depth =
     parseInt(
       await askQuestion('Enter research depth (recommended 1-5, default 2): '),
-      10,
+      10
     ) || 2;
 
   log(`Creating research plan...`);
@@ -53,7 +74,7 @@ async function run() {
   });
 
   log(
-    '\nTo better understand your research needs, please answer these follow-up questions:',
+    '\nTo better understand your research needs, please answer these follow-up questions:'
   );
 
   // Collect answers to follow-up questions
@@ -73,7 +94,7 @@ ${followUpQuestions.map((q: string, i: number) => `Q: ${q}\nA: ${answers[i]}`).j
   log('\nResearching your topic...');
 
   log('\nStarting research with progress tracking...\n');
-  
+
   const { learnings, visitedUrls } = await deepResearch({
     query: combinedQuery,
     breadth,
@@ -85,7 +106,7 @@ ${followUpQuestions.map((q: string, i: number) => `Q: ${q}\nA: ${answers[i]}`).j
 
   log(`\n\nLearnings:\n\n${learnings.join('\n')}`);
   log(
-    `\n\nVisited URLs (${visitedUrls.length}):\n\n${visitedUrls.join('\n')}`,
+    `\n\nVisited URLs (${visitedUrls.length}):\n\n${visitedUrls.join('\n')}`
   );
   log('Writing final report...');
 
